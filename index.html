@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid Iron</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cellipse cx='50' cy='50' rx='44' ry='28' transform='rotate(-35 50 50)' fill='%23041e42'/%3E%3Cg stroke='%23fff' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M36 64 L64 36'/%3E%3Cpath d='M42 50 L50 58 M47 45 L55 53 M52 40 L60 48'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root{
+    --navy:#041e42;
+    --navy-2:#0b2f63;
+    --silver:#a5acaf;
+    --silver-light:#e7eaec;
+    --paper:#f4f6f7;
+    --card:#ffffff;
+    --ink:#0f1a2a;
+    --muted:#5b6673;
+    --line:#cfd5da;
+    --correct:#1f6b3a;
+    --correct-bg:#e3f1e7;
+    --wrong:#a3271f;
+    --wrong-bg:#fbe4e1;
+    --unknown:#8a5a00;
+    --unknown-bg:#fdf1d8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+  }
+  .topbar{
+    background:var(--navy);
+    color:#fff;
+    border-bottom:4px solid var(--silver);
+    padding:18px 16px 16px;
+  }
+  .topbar .inner{max-width:860px;margin:0 auto;}
+  h1{
+    margin:0;
+    font-size:2rem;
+    font-weight:800;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  h1 span{color:var(--silver);}
+  .sub{margin-top:4px;color:#c8d0d8;font-size:0.92rem;line-height:1.45;max-width:62ch;}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px;}
+
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
+  button{
+    font-family:inherit;
+    font-size:0.88rem;
+    font-weight:600;
+    padding:9px 16px;
+    background:var(--navy);
+    color:#fff;
+    border:1px solid var(--navy);
+    border-radius:6px;
+    cursor:pointer;
+  }
+  button:hover{background:var(--navy-2);}
+  button.secondary{background:var(--card);color:var(--navy);}
+  button.secondary:hover{background:var(--silver-light);}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  .spacer{flex:1;}
+
+  .scoreboard{
+    display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+    margin-bottom:6px;
+  }
+  .score{font-size:1.7rem;font-weight:800;color:var(--navy);}
+  .score small{font-size:0.8rem;font-weight:600;color:var(--muted);}
+  .filled{font-size:0.85rem;color:var(--muted);}
+  .grid-info{font-size:0.82rem;color:var(--muted);margin-bottom:12px;min-height:1.2em;}
+  .grid-info strong{color:var(--ink);}
+  .grid-code{font-family:Menlo,Consolas,monospace;background:var(--silver-light);padding:1px 5px;border-radius:3px;letter-spacing:1px;}
+
+  table.grid{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:6px;
+    table-layout:fixed;
+    margin:0 -6px;
+    width:calc(100% + 12px);
+  }
+  table.grid th, table.grid td{vertical-align:top;}
+  th.corner{width:22%;}
+  th.cat{
+    background:var(--navy);
+    color:#fff;
+    border-radius:8px;
+    padding:10px 8px;
+    font-size:0.88rem;
+    line-height:1.25;
+    text-align:center;
+    vertical-align:middle;
+  }
+  th.cat .tag{display:block;font-size:0.66rem;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--silver);margin-bottom:3px;}
+  th.cat .note{display:block;font-size:0.68rem;font-weight:400;color:#c8d0d8;margin-top:3px;}
+  th.row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px;
+    text-align:left;
+    font-size:0.88rem;
+    vertical-align:middle;
+  }
+  .row-btn{
+    display:flex;align-items:center;gap:8px;width:100%;
+    background:transparent;color:var(--ink);border:none;padding:0;text-align:left;font-weight:700;
+  }
+  .row-btn:hover{background:transparent;color:var(--navy-2);}
+  .row-btn img{width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:top;background:var(--silver-light);flex:none;}
+  .row-btn .kicker{display:block;font-size:0.66rem;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--muted);}
+  .row-btn .years{display:block;font-size:0.72rem;font-weight:400;color:var(--muted);}
+
+  td.cell{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    height:150px;
+    padding:8px;
+    position:relative;
+  }
+  td.cell.correct{background:var(--correct-bg);border-color:#a9d3b5;}
+  td.cell.flash-wrong{background:var(--wrong-bg);}
+  td.cell.locked{background:var(--silver-light);}
+  .ac-wrap{position:relative;}
+  .cell input{
+    width:100%;
+    font-family:inherit;
+    font-size:0.88rem;
+    padding:8px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .cell input:focus{outline:2px solid var(--navy-2);outline-offset:0;border-color:transparent;}
+  .ac-list{
+    position:absolute;top:100%;left:0;
+    min-width:100%;width:max-content;max-width:260px;
+    background:#fff;border:1px solid var(--line);border-radius:6px;
+    margin:3px 0 0;padding:0;list-style:none;
+    max-height:240px;overflow-y:auto;z-index:30;
+    box-shadow:0 6px 16px rgba(4,30,66,0.18);
+    display:none;
+  }
+  td.cell.right .ac-list{left:auto;right:0;}
+  .ac-list li{padding:7px 10px;font-size:0.84rem;cursor:pointer;border-bottom:1px solid var(--silver-light);}
+  .ac-list li:last-child{border-bottom:none;}
+  .ac-list li small{display:block;color:var(--muted);font-size:0.72rem;}
+  .ac-list li.active, .ac-list li:hover{background:var(--silver-light);}
+  .msg{font-size:0.76rem;line-height:1.35;margin-top:6px;}
+  .msg.wrong{color:var(--wrong);}
+  .msg.unknown{color:var(--unknown);background:var(--unknown-bg);padding:4px 6px;border-radius:4px;}
+
+  .answer{text-align:center;padding-top:2px;}
+  .avatar{
+    display:flex;align-items:center;justify-content:center;flex:none;
+    width:40px;height:40px;border-radius:50%;background:var(--navy);color:var(--silver);
+    font-weight:800;font-size:0.8rem;letter-spacing:0.5px;
+  }
+  .answer .avatar{width:84px;height:84px;font-size:1.3rem;margin:0 auto 6px;border:3px solid var(--correct);}
+  .profile .avatar{width:160px;height:160px;font-size:2.4rem;margin:0 auto;}
+  .answer img{
+    width:84px;height:84px;border-radius:50%;object-fit:cover;object-position:top;
+    background:#fff;border:3px solid var(--correct);display:block;margin:0 auto 6px;
+  }
+  .answer .name{font-weight:700;font-size:0.86rem;color:var(--correct);line-height:1.2;}
+  .answer .yrs{font-size:0.72rem;color:var(--muted);}
+  .pts{
+    position:absolute;top:6px;right:6px;
+    font-size:0.7rem;font-weight:800;padding:3px 7px;border-radius:10px;
+    background:var(--correct);color:#fff;border:none;cursor:pointer;
+  }
+  .pts:hover{background:#174f2b;}
+  .see-all{font-size:0.72rem;padding:4px 10px;margin-top:6px;}
+  .cell .count{font-size:0.75rem;color:var(--muted);margin-top:6px;}
+
+  .used{margin-top:18px;font-size:0.8rem;color:var(--muted);}
+  footer{margin-top:28px;font-size:0.76rem;color:var(--muted);text-align:center;line-height:1.6;}
+  footer a{color:var(--navy-2);cursor:pointer;}
+
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(4,30,66,0.55);
+    z-index:100;align-items:center;justify-content:center;padding:16px;
+  }
+  .modal-box{
+    background:var(--card);border-radius:10px;max-width:480px;width:100%;max-height:82vh;
+    display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.3);
+  }
+  .modal-header{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700;
+  }
+  .modal-header button{padding:4px 10px;font-size:0.8rem;}
+  .modal-body{padding:12px 16px;overflow-y:auto;font-size:0.86rem;line-height:1.45;}
+  .modal-list{list-style:none;margin:0;padding:0;}
+  .modal-list li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--silver-light);}
+  .modal-list li:last-child{border-bottom:none;}
+  .modal-list li.mine{font-weight:700;color:var(--correct);}
+  .modal-list .meta{color:var(--muted);font-size:0.76rem;white-space:nowrap;}
+  .modal-note{color:var(--muted);font-size:0.78rem;margin-bottom:8px;}
+  .profile{text-align:center;}
+  .profile img{width:160px;height:160px;border-radius:50%;object-fit:cover;object-position:top;background:var(--silver-light);}
+  .profile dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;text-align:left;margin:14px 0 0;}
+  .profile dt{color:var(--muted);}
+  .profile dd{margin:0;}
+  .faq-q{font-weight:700;margin-top:12px;}
+  .faq-q:first-child{margin-top:0;}
+  .faq-a{color:#3a4654;}
+  .breakdown div{padding:2px 0;}
+  .breakdown .total{font-weight:800;color:var(--correct);border-top:1px solid var(--line);margin-top:6px;padding-top:6px;}
+
+  .toast{
+    position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-8px);
+    background:var(--navy);color:#fff;padding:10px 18px;border-radius:6px;font-size:0.85rem;
+    box-shadow:0 4px 14px rgba(0,0,0,0.3);opacity:0;pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;z-index:200;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:640px){
+    h1{font-size:1.6rem;}
+    table.grid{border-spacing:4px;margin:0 -4px;width:calc(100% + 8px);}
+    th.cat{font-size:0.74rem;padding:7px 4px;}
+    th.cat .note{display:none;}
+    th.row{padding:5px;font-size:0.74rem;}
+    .row-btn{flex-direction:column;align-items:flex-start;gap:4px;}
+    .row-btn img, .row-btn .avatar{width:32px;height:32px;font-size:0.65rem;}
+    th.cat .tag{letter-spacing:0.2px;font-size:0.6rem;}
+    .answer .avatar{width:60px;height:60px;font-size:1rem;}
+    td.cell{height:136px;padding:5px;}
+    .cell input{font-size:16px;padding:6px;} /* 16px stops iOS from zooming on focus */
+    .answer img{width:60px;height:60px;}
+    .answer .name{font-size:0.74rem;}
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="inner">
+    <h1>Grid <span>Iron</span></h1>
+    <div class="sub">A Dallas Cowboys trivia grid. For each square, name a Cowboy who played with that row's player <em>and</em> fits the column. Obscure picks score more.</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="controls">
+    <button id="dailyBtn">Today's Daily</button>
+    <button id="newBtn" class="secondary">New grid</button>
+    <span class="spacer"></span>
+    <button id="shareBtn" class="secondary">Share grid</button>
+    <button id="revealBtn" class="secondary">See answers</button>
+  </div>
+
+  <div class="scoreboard">
+    <div class="score"><span id="score">0</span> <small>pts</small></div>
+    <div class="filled" id="filled">0 / 9 filled</div>
+  </div>
+  <div class="grid-info" id="gridInfo"></div>
+
+  <table class="grid" id="grid">
+    <thead><tr><th class="corner"></th><th class="cat" id="cat0"></th><th class="cat" id="cat1"></th><th class="cat" id="cat2"></th></tr></thead>
+    <tbody id="gridBody"></tbody>
+  </table>
+  <div class="used" id="used"></div>
+
+  <footer>
+    Player data from <a href="https://github.com/nflverse" target="_blank" rel="noopener">nflverse</a> (rosters 1960–today, stats 1999–today).
+    Not affiliated with the Dallas Cowboys or the NFL.<br>
+    <a id="faqLink">How it works &amp; FAQ</a>
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header"><span id="modalTitle"></span><button id="modalClose" class="secondary">Close</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+
+// ---------- Data ----------
+const D = window.GRID_DATA;
+const P = D.players;
+const STATS_FROM = D.statsFrom;
+const SB_SEASONS = new Set(D.superBowls);
+const MIN_ANSWERS = 3;      // every cell needs at least this many valid answers
+const DAILY_EPOCH = "2026-10-20"; // Daily #1
+const STORAGE_KEY = "gridiron_daily";
+
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+
+P.forEach((p, i) => {
+  p.i = i;
+  p.seasonSet = new Set(p.s);
+  p.keys = [p.n, ...(p.a || [])].map(norm);
+});
+const ANCHOR_NAMES = D.anchors.map(i => P[i].n);
+const anchorByName = new Map(D.anchors.map(i => [P[i].n, P[i]]));
+
+function yearsLabel(p){
+  // Collapse seasons into ranges: 1986–89, 1996–97
+  const out = [];
+  let start = p.s[0], prev = p.s[0];
+  for(const y of p.s.slice(1).concat([null])){
+    if(y === prev + 1){ prev = y; continue; }
+    out.push(start === prev ? `${start}` : `${start}–${String(prev).slice(-2)}`);
+    start = prev = y;
+  }
+  return out.join(", ");
+}
+
+const POS_LABEL = {QB:"Quarterback", RB:"Running back", WR:"Wide receiver", TE:"Tight end",
+  OL:"Offensive line", DL:"Defensive line", LB:"Linebacker", DB:"Defensive back", ST:"Kicker, punter or snapper"};
+const TEAM_NAMES = {ARI:"Cardinals",ATL:"Falcons",BAL:"Ravens",BUF:"Bills",CAR:"Panthers",CHI:"Bears",CIN:"Bengals",
+  CLE:"Browns",DEN:"Broncos",DET:"Lions",GB:"Packers",HOU:"Texans",IND:"Colts",JAX:"Jaguars",KC:"Chiefs",
+  LAC:"Chargers",LAR:"Rams",LV:"Raiders",MIA:"Dolphins",MIN:"Vikings",NE:"Patriots",NO:"Saints",NYG:"Giants",
+  NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",SEA:"Seahawks",SF:"49ers",TB:"Buccaneers",TEN:"Oilers / Titans",WAS:"Washington"};
+const STAT_LABEL = {pass4000:"4,000-yard passing season", rush1000:"1,000-yard rushing season",
+  rec1000:"1,000-yard receiving season", sack10:"10-sack season", int5:"5-interception season",
+  td10:"10-TD season (rush + catch)"};
+const DRAFT_LABEL = {r1:"1st-round draft pick", dal:"Drafted by Dallas", und:"Went undrafted"};
+const TENURE_LABEL = {"10plus":"10+ seasons in Dallas", one:"Only 1 season in Dallas"};
+
+const jerseyCounts = {};
+P.forEach(p => p.j.forEach(n => { jerseyCounts[n] = (jerseyCounts[n] || 0) + 1; }));
+const JERSEYS = Object.keys(jerseyCounts).map(Number).filter(n => jerseyCounts[n] >= 10);
+
+// ---------- Categories ----------
+// Each category tests a player and answers true, false, or null (our data can't tell).
+// test(p) returns [result, reason-if-not-true].
+const CAT_TYPES = {
+  pos: {
+    tag: "Position", weight: 3, values: Object.keys(POS_LABEL),
+    label: v => POS_LABEL[v],
+    test: (v, p) => p.pg.length ? [p.pg.includes(v), `played ${p.pg.map(g => POS_LABEL[g].toLowerCase()).join(" / ")}`] : [null, "we don't have his position"],
+  },
+  decade: {
+    tag: "Era", weight: 3, values: [1960,1970,1980,1990,2000,2010,2020],
+    label: v => `Cowboy in the ${v}s`,
+    test: (v, p) => [p.s.some(y => y >= v && y < v + 10), `was a Cowboy ${yearsLabel(p)}`],
+  },
+  sb: {
+    tag: "Rings", weight: 1.2, values: ["win"],
+    label: () => "Won a Super Bowl with Dallas",
+    note: () => "Seasons " + D.superBowls.join(", "),
+    test: (v, p) => [p.s.some(y => SB_SEASONS.has(y)), `was a Cowboy ${yearsLabel(p)}`],
+  },
+  coach: {
+    tag: "Head coach", weight: 2, values: D.coaches.map(c => c[0]),
+    label: v => `Played for ${v}`,
+    test: (v, p) => {
+      const [, from, to] = D.coaches.find(c => c[0] === v);
+      return [p.s.some(y => y >= from && y <= to), `was a Cowboy ${yearsLabel(p)}`];
+    },
+  },
+  honor: {
+    tag: "Honors", weight: 1.2, values: ["hof", "roh"],
+    label: v => v === "hof" ? "Pro Football Hall of Famer" : "Ring of Honor",
+    test: (v, p) => [!!p[v], v === "hof" ? "isn't in the Hall of Fame" : "isn't in the Ring of Honor"],
+  },
+  team: {
+    tag: "Career", weight: 3, values: Object.keys(TEAM_NAMES),
+    label: v => `Also played for the ${TEAM_NAMES[v]}`,
+    note: () => "Any time in his career",
+    test: (v, p) => {
+      if(p.o.includes(v)) return [true];
+      if(p.fs <= 1961) return [null, "our roster data starts in 1960, and his career may have started earlier"];
+      return [false, p.o.length ? `also played for the ${p.o.map(t => TEAM_NAMES[t] || t).join(", ")}` : "only played for Dallas"];
+    },
+  },
+  college: {
+    tag: "College", weight: 2, values: D.colleges,
+    label: v => `Played college ball at ${v}`,
+    test: (v, p) => p.c.length ? [p.c.includes(v), `went to ${p.c.join(" / ")}`] : [null, "we don't have his college"],
+  },
+  draft: {
+    tag: "Draft", weight: 1.5, values: Object.keys(DRAFT_LABEL),
+    label: v => DRAFT_LABEL[v],
+    test: (v, p) => {
+      const d = p.d;
+      if(!d) return [null, "we don't have draft records from his era"];
+      const desc = d.u ? "went undrafted" : `was a round ${d.r} pick by ${d.t === "DAL" ? "Dallas" : (TEAM_NAMES[d.t] ? "the " + TEAM_NAMES[d.t] : d.t)} in ${d.y}`;
+      if(v === "und") return [!!d.u, desc];
+      if(v === "r1") return [!d.u && d.r === 1, desc];
+      return [!d.u && d.t === "DAL", desc];
+    },
+  },
+  stat: {
+    tag: "Big season", weight: 1.5, values: Object.keys(STAT_LABEL),
+    label: v => STAT_LABEL[v],
+    note: () => `With Dallas · stats from ${STATS_FROM} on`,
+    test: (v, p) => {
+      if(p.f.includes(v)) return [true];
+      if(p.s[0] < STATS_FROM) return [null, `our season stats only go back to ${STATS_FROM}`];
+      return [false, "never had one with Dallas"];
+    },
+  },
+  tenure: {
+    tag: "Tenure", weight: 1, values: Object.keys(TENURE_LABEL),
+    label: v => TENURE_LABEL[v],
+    test: (v, p) => [v === "one" ? p.s.length === 1 : p.s.length >= 10, `played ${p.s.length} season${p.s.length === 1 ? "" : "s"} in Dallas`],
+  },
+  jersey: {
+    tag: "Jersey", weight: 1, values: JERSEYS,
+    label: v => `Wore #${v} for Dallas`,
+    test: (v, p) => p.j.length ? [p.j.includes(v), `wore #${p.j.join(", #")}`] : [null, "we don't have his jersey number"],
+  },
+  mate: {
+    tag: "Teammate", weight: 2, values: ANCHOR_NAMES,
+    label: v => `Played with ${v}`,
+    test: (v, p) => teammateTest(anchorByName.get(v), p),
+  },
+};
+
+function teammateTest(anchor, p){
+  if(p.i === anchor.i) return [false, `that's ${anchor.n} himself`];
+  return [p.s.some(y => anchor.seasonSet.has(y)), `wasn't in Dallas at the same time (${yearsLabel(p)} vs. ${yearsLabel(anchor)})`];
+}
+
+const catLabel = c => CAT_TYPES[c.t].label(c.v);
+const catNote = c => CAT_TYPES[c.t].note ? CAT_TYPES[c.t].note(c.v) : "";
+const catTest = (c, p) => CAT_TYPES[c.t].test(c.v, p);
+
+// All players who are definitely valid for a row anchor + column category.
+function validAnswers(anchor, cat){
+  return P.filter(p => teammateTest(anchor, p)[0] === true && catTest(cat, p)[0] === true);
+}
+
+// ---------- Scoring ----------
+// Rarity rewards deep cuts: 1-season Cowboys score 50, long-tenured stars score 1.
+function rarity(p){
+  const fame = p.s.length + (p.hof ? 8 : 0) + (p.roh ? 5 : 0) + (anchorByName.get(p.n) === p ? 4 : 0);
+  const capped = Math.min(Math.max(fame, 1), 14);
+  return Math.round(50 - (capped - 1) * 49 / 13);
+}
+
+// ---------- Seeded randomness (same Daily for everyone) ----------
+function hashString(str){ let h = 0x811c9dc5; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+function seededRng(seed){
+  let a = hashString(seed);
+  return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
+function sample(arr, n, rng){ const c = [...arr], out = []; while(out.length < n && c.length) out.push(c.splice(Math.floor(rng()*c.length), 1)[0]); return out; }
+
+function todayInNewYork(){
+  const parts = new Intl.DateTimeFormat("en-US", {timeZone:"America/New_York", year:"numeric", month:"2-digit", day:"2-digit"}).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+function dailyNumber(date){
+  const utc = d => { const [y,m,dd] = d.split("-").map(Number); return Date.UTC(y, m-1, dd); };
+  return Math.round((utc(date) - utc(DAILY_EPOCH)) / 86400000) + 1;
+}
+function gridCode(spec){
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let h = hashString(spec.a.join("|") + "||" + spec.c.map(c => c.t + ":" + c.v).join("|")), code = "";
+  for(let i=0;i<4;i++){ code += alphabet[h % alphabet.length]; h = Math.floor(h / alphabet.length); }
+  return code;
+}
+
+// ---------- Dealing ----------
+// Pick 3 categories of different types (type by weight, then a value), then
+// pick 3 row players who each have at least MIN_ANSWERS answers in all three.
+// Choosing categories first keeps the mix of column types close to the weights.
+function hasEnoughAnswers(anchor, cat){
+  let n = 0;
+  for(const p of P){
+    if(catTest(cat, p)[0] === true && teammateTest(anchor, p)[0] === true && ++n >= MIN_ANSWERS) return true;
+  }
+  return false;
+}
+
+function dealGrid(rng){
+  const types = Object.keys(CAT_TYPES);
+  const totalWeight = types.reduce((s, t) => s + CAT_TYPES[t].weight, 0);
+  const randomType = () => { let r = rng() * totalWeight; for(const t of types){ r -= CAT_TYPES[t].weight; if(r <= 0) return t; } return types[0]; };
+
+  for(let attempt = 0; attempt < 300; attempt++){
+    const cats = [];
+    while(cats.length < 3){
+      const t = randomType();
+      if(cats.some(c => c.t === t)) continue;
+      cats.push({t, v: pick(CAT_TYPES[t].values, rng)});
+    }
+    const eligible = ANCHOR_NAMES.filter(n => {
+      if(cats.some(c => c.t === "mate" && c.v === n)) return false;
+      const a = anchorByName.get(n);
+      return cats.every(c => hasEnoughAnswers(a, c));
+    });
+    if(eligible.length >= 3) return {a: sample(eligible, 3, rng), c: cats};
+  }
+  throw new Error("Couldn't deal a solvable grid");
+}
+
+// Specs arrive from links and storage, so check them against the known lists.
+function validSpec(spec){
+  if(!spec || !Array.isArray(spec.a) || !Array.isArray(spec.c) || spec.a.length !== 3 || spec.c.length !== 3) return null;
+  if(!spec.a.every(n => anchorByName.has(n)) || new Set(spec.a).size !== 3) return null;
+  const cats = [];
+  for(const c of spec.c){
+    if(!c || !CAT_TYPES[c.t] || !CAT_TYPES[c.t].values.includes(c.v)) return null;
+    cats.push({t: c.t, v: c.v});
+  }
+  const d = typeof spec.d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(spec.d) ? spec.d : undefined;
+  return {a: [...spec.a], c: cats, d};
+}
+
+// ---------- State ----------
+let grid = null;        // {a:[names], c:[cats], d?:date}
+let answers = {};       // "r-c" -> player index
+let locked = false;
+let isDaily = false;
+let fromLink = false;
+
+const storage = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} },
+};
+
+function save(){
+  if(!isDaily) return;
+  storage.set(STORAGE_KEY, JSON.stringify({grid, answers: Object.fromEntries(Object.entries(answers).map(([k, i]) => [k, P[i].n + "|" + P[i].s[0]])), locked}));
+}
+
+function loadSaved(date){
+  let data;
+  try{ data = JSON.parse(storage.get(STORAGE_KEY) || "null"); }catch(e){ return null; }
+  if(!data || !data.grid || data.grid.d !== date) return null;
+  const g = validSpec(data.grid);
+  if(!g) return null;
+  const restored = {};
+  for(const [k, key] of Object.entries(data.answers || {})){
+    const [name, first] = String(key).split("|");
+    const p = P.find(p => p.n === name && String(p.s[0]) === first);
+    if(p && /^[0-2]-[0-2]$/.test(k)) restored[k] = p.i;
+  }
+  return {grid: g, answers: restored, locked: !!data.locked};
+}
+
+function startDaily(){
+  const date = todayInNewYork();
+  const saved = loadSaved(date);
+  if(saved){
+    startGrid(saved.grid, true, saved.answers, saved.locked);
+    return;
+  }
+  const g = dealGrid(seededRng("gridiron-daily:" + date));
+  g.d = date;
+  startGrid(g, true);
+}
+
+function startRandom(){
+  startGrid(dealGrid(Math.random), false);
+}
+
+function startGrid(g, daily, savedAnswers = {}, savedLocked = false, linked = false){
+  grid = g;
+  fromLink = linked;
+  isDaily = daily;
+  answers = savedAnswers;
+  locked = savedLocked;
+  render();
+  save();
+}
+
+// ---------- Rendering ----------
+// NFL headshots are 1400x1000 landscape files; ask the image host for a face-centered square.
+function headshotUrl(p, size){
+  return p.img.replace("/f_auto,q_auto/", `/f_auto,q_auto,c_fill,g_face,w_${size},h_${size}/`);
+}
+const initials = p => p.n.split(" ").map(w => w.replace(/[^A-Za-z]/g, "")[0] || "").join("").slice(0, 3);
+function headshot(p, size = 160){
+  const fallback = `<span class="avatar">${esc(initials(p))}</span>`;
+  if(!p.img) return fallback;
+  return `<img src="${esc(headshotUrl(p, size))}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'avatar',textContent:'${esc(initials(p))}'}))">`;
+}
+
+function render(){
+  grid.c.forEach((c, i) => {
+    const note = catNote(c);
+    el("cat" + i).innerHTML = `<span class="tag">${esc(CAT_TYPES[c.t].tag)}</span>${esc(catLabel(c))}${note ? `<span class="note">${esc(note)}</span>` : ""}`;
+  });
+  const body = el("gridBody");
+  body.innerHTML = "";
+  grid.a.forEach((name, r) => {
+    const anchor = anchorByName.get(name);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<th class="row"><button class="row-btn" data-player="${anchor.i}">${headshot(anchor)}<span><span class="kicker">Played with</span>${esc(anchor.n)}<span class="years">${esc(yearsLabel(anchor))}</span></span></button></th>`;
+    for(let c = 0; c < 3; c++){
+      const td = document.createElement("td");
+      td.className = "cell" + (c === 2 ? " right" : "");
+      td.id = `cell-${r}-${c}`;
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  });
+  for(let r = 0; r < 3; r++) for(let c = 0; c < 3; c++) renderCell(r, c);
+  body.querySelectorAll(".row-btn").forEach(b => b.addEventListener("click", () => openProfile(P[+b.dataset.player])));
+  renderInfo();
+}
+
+function renderInfo(){
+  const code = gridCode(grid);
+  const label = isDaily ? `<strong>Daily #${dailyNumber(grid.d)}</strong> · ${esc(grid.d)}` : (grid.d ? `<strong>Shared Daily #${dailyNumber(grid.d)}</strong>` : `<strong>${fromLink ? "Shared grid" : "Random grid"}</strong>`);
+  el("gridInfo").innerHTML = `${label} · grid <span class="grid-code">${code}</span>${locked ? " · answers revealed" : ""}`;
+  const vals = Object.entries(answers);
+  const score = vals.reduce((s, [, i]) => s + 50 + rarity(P[i]), 0);
+  el("score").textContent = score;
+  el("filled").textContent = `${vals.length} / 9 filled`;
+  el("used").textContent = vals.length ? "Used: " + vals.map(([, i]) => P[i].n).join(", ") : "";
+  el("revealBtn").disabled = locked;
+}
+
+function renderCell(r, c){
+  const td = el(`cell-${r}-${c}`);
+  const key = `${r}-${c}`;
+  td.classList.remove("correct", "locked", "flash-wrong");
+  if(answers[key] !== undefined){
+    const p = P[answers[key]];
+    td.classList.add("correct");
+    td.innerHTML = `<button class="pts" title="Score breakdown">${50 + rarity(p)}</button>
+      <div class="answer">${headshot(p)}<div class="name">${esc(p.n)}</div><div class="yrs">${esc(yearsLabel(p))}</div></div>
+      ${locked ? `<button class="secondary see-all">See all</button>` : ""}`;
+    td.querySelector(".pts").addEventListener("click", () => openBreakdown(p));
+    if(locked) td.querySelector(".see-all").addEventListener("click", () => openSeeAll(r, c));
+    return;
+  }
+  if(locked){
+    const n = validAnswers(anchorByName.get(grid.a[r]), grid.c[c]).length;
+    td.classList.add("locked");
+    td.innerHTML = `<div class="count">${n} valid answer${n === 1 ? "" : "s"}</div><button class="secondary see-all">See all</button>`;
+    td.querySelector(".see-all").addEventListener("click", () => openSeeAll(r, c));
+    return;
+  }
+  td.innerHTML = `<div class="ac-wrap"><input type="text" placeholder="Player" autocomplete="off" spellcheck="false" aria-label="Answer for row ${r+1}, column ${c+1}"><ul class="ac-list"></ul></div><div class="msg"></div>`;
+  wireAutocomplete(td, r, c);
+}
+
+// ---------- Autocomplete + guessing ----------
+function search(q){
+  const nq = norm(q);
+  if(nq.length < 2) return [];
+  const scored = [];
+  for(const p of P){
+    let best = -1;
+    for(const k of p.keys){
+      if(k.startsWith(nq)) best = Math.max(best, 3);
+      else if(k.split(" ").some(w => w.startsWith(nq))) best = Math.max(best, 2);
+      else if(k.includes(nq)) best = Math.max(best, 1);
+    }
+    if(best >= 0) scored.push([best, p]);
+  }
+  scored.sort((a, b) => b[0] - a[0] || b[1].s.length - a[1].s.length || a[1].n.localeCompare(b[1].n));
+  return scored.slice(0, 8).map(x => x[1]);
+}
+
+function wireAutocomplete(td, r, c){
+  const input = td.querySelector("input");
+  const list = td.querySelector(".ac-list");
+  let items = [], active = 0;
+  const draw = () => {
+    if(!items.length){ list.style.display = "none"; return; }
+    list.innerHTML = items.map((p, i) => `<li data-i="${i}" class="${i === active ? "active" : ""}">${esc(p.n)}<small>${esc(p.g || "")} · ${esc(yearsLabel(p))}</small></li>`).join("");
+    list.style.display = "block";
+  };
+  input.addEventListener("input", () => { items = search(input.value); active = 0; draw(); });
+  input.addEventListener("keydown", e => {
+    if(e.key === "ArrowDown" && items.length){ active = (active + 1) % items.length; draw(); e.preventDefault(); }
+    else if(e.key === "ArrowUp" && items.length){ active = (active - 1 + items.length) % items.length; draw(); e.preventDefault(); }
+    else if(e.key === "Escape"){ items = []; draw(); }
+    else if(e.key === "Enter"){
+      e.preventDefault();
+      if(items.length) guess(r, c, [items[active]]);
+      else{
+        const exact = P.filter(p => p.keys.includes(norm(input.value)));
+        guess(r, c, exact, input.value);
+      }
+    }
+  });
+  list.addEventListener("mousedown", e => {
+    const li = e.target.closest("li");
+    if(li){ e.preventDefault(); guess(r, c, [items[+li.dataset.i]]); }
+  });
+  input.addEventListener("blur", () => setTimeout(() => { items = []; draw(); }, 120));
+}
+
+function showMsg(r, c, text, kind){
+  const td = el(`cell-${r}-${c}`);
+  const msg = td.querySelector(".msg");
+  if(!msg) return;
+  msg.className = "msg " + kind;
+  msg.textContent = text;
+  if(kind === "wrong"){
+    td.classList.add("flash-wrong");
+    setTimeout(() => td.classList.remove("flash-wrong"), 600);
+  }
+}
+
+// candidates: players matching what was typed (more than one if names are shared).
+function guess(r, c, candidates, typed = ""){
+  if(locked) return;
+  if(!candidates.length){ showMsg(r, c, typed.trim() ? `No Cowboy named "${typed.trim()}". Pick from the list.` : "Type a name.", "wrong"); return; }
+  const td = el(`cell-${r}-${c}`);
+  td.querySelector(".ac-list").style.display = "none";
+  const usedIdx = new Set(Object.values(answers));
+  const anchor = anchorByName.get(grid.a[r]);
+  const cat = grid.c[c];
+  let firstFail = null, unknown = null;
+  for(const p of candidates){
+    if(usedIdx.has(p.i)){ firstFail = firstFail || `${p.n} is already on your grid.`; continue; }
+    const [mate, mateWhy] = teammateTest(anchor, p);
+    if(!mate){ firstFail = firstFail || `${p.n} ${mateWhy.startsWith("that's") ? "— " + mateWhy + "." : mateWhy + "."}`; continue; }
+    const [ok, why] = catTest(cat, p);
+    if(ok === true){
+      td.querySelector(".ac-list").style.display = "none";
+      answers[`${r}-${c}`] = p.i;
+      save();
+      renderCell(r, c);
+      renderInfo();
+      toast(`+${50 + rarity(p)} — ${p.n}`);
+      return;
+    }
+    if(ok === null) unknown = unknown || `Can't verify "${catLabel(cat)}" for ${p.n}: ${why}. Try someone else (no penalty).`;
+    else firstFail = firstFail || `${p.n} ${why}.`;
+  }
+  if(unknown && !firstFail) showMsg(r, c, unknown, "unknown");
+  else showMsg(r, c, `Not quite: ${firstFail || unknown}`, "wrong");
+}
+
+// ---------- Modals ----------
+function openModal(title, html){
+  el("modalTitle").textContent = title;
+  el("modalBody").innerHTML = html;
+  el("modal").style.display = "flex";
+  el("modalClose").focus();
+}
+function closeModal(){ el("modal").style.display = "none"; }
+el("modalClose").addEventListener("click", closeModal);
+el("modal").addEventListener("click", e => { if(e.target === el("modal")) closeModal(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+
+function openProfile(p){
+  const d = p.d ? (p.d.u ? "Undrafted" : `${p.d.y}, round ${p.d.r} (#${p.d.p}) by ${p.d.t === "DAL" ? "Dallas" : (TEAM_NAMES[p.d.t] || p.d.t)}`) : "—";
+  const honors = [p.hof && "Hall of Fame", p.roh && "Ring of Honor"].filter(Boolean).join(", ") || "—";
+  openModal(p.n, `<div class="profile">${headshot(p)}
+    <dl>
+      <dt>Dallas</dt><dd>${esc(yearsLabel(p))} (${p.s.length} season${p.s.length === 1 ? "" : "s"})</dd>
+      <dt>Position</dt><dd>${esc(p.pg.map(g => POS_LABEL[g]).join(", ") || "—")}</dd>
+      <dt>Number</dt><dd>${p.j.length ? "#" + p.j.join(", #") : "—"}</dd>
+      <dt>College</dt><dd>${esc(p.c.join(", ") || "—")}</dd>
+      <dt>Draft</dt><dd>${esc(d)}</dd>
+      <dt>Other teams</dt><dd>${esc(p.o.map(t => TEAM_NAMES[t] || t).join(", ") || "—")}</dd>
+      <dt>Honors</dt><dd>${esc(honors)}</dd>
+    </dl></div>`);
+}
+
+function openBreakdown(p){
+  openModal(p.n, `<div class="breakdown">
+    <div>Correct answer: 50</div>
+    <div>Rarity: ${rarity(p)} <span class="meta">(${p.s.length} season${p.s.length === 1 ? "" : "s"} in Dallas${p.hof ? ", Hall of Famer" : ""}${p.roh ? ", Ring of Honor" : ""})</span></div>
+    <div class="total">Total: ${50 + rarity(p)}</div>
+    <p class="modal-note">Rarity runs from 50 (one-season Cowboys) down to 1 (long-tenured stars and Hall of Famers).</p>
+  </div>`);
+}
+
+function openSeeAll(r, c){
+  const anchor = anchorByName.get(grid.a[r]);
+  const cat = grid.c[c];
+  const list = validAnswers(anchor, cat).sort((a, b) => rarity(b) - rarity(a) || a.n.localeCompare(b.n));
+  const mine = answers[`${r}-${c}`];
+  openModal(`${anchor.n} × ${catLabel(cat)}`, `<div class="modal-note">${list.length} valid answer${list.length === 1 ? "" : "s"}, rarest first.</div>
+    <ul class="modal-list">${list.map(p => `<li class="${p.i === mine ? "mine" : ""}"><span>${esc(p.n)}${p.i === mine ? " (yours)" : ""}</span><span class="meta">${esc(yearsLabel(p))} · ${50 + rarity(p)} pts</span></li>`).join("")}</ul>`);
+}
+
+const FAQ = [
+  ["How do I play?", "Each square sits under a row player and a column category. Name a Cowboy who was on the Dallas roster in at least one of the same seasons as the row player, and who fits the column. Each player can only be used once per grid."],
+  ["How is it scored?", "50 points for a correct answer, plus 1–50 rarity points. Rarity depends on how many seasons the player spent in Dallas (fewer is rarer), with Hall of Famers, Ring of Honor members, and the row players themselves counted as famous."],
+  ["What does \"played with\" mean?", "Both players were on the Cowboys roster in the same season. Practice squad players don't count. Being on the same season's roster doesn't guarantee they overlapped week to week."],
+  ["Why did it say it can't verify my answer?", "Some data is missing for older players: college and jersey numbers for many 1960s Cowboys, draft records before 1980, and season stats before 1999. Rather than mark a possibly-right answer wrong, the game tells you and lets you try someone else with no penalty."],
+  ["Where does the data come from?", "Rosters, colleges, draft picks, and stats come from the free nflverse project. The Hall of Fame and Ring of Honor lists and the head coach list are maintained by hand."],
+  ["How does the Daily work?", "Everyone gets the same grid each day, rolling over at midnight New York time. Your progress is saved in this browser. Seeing the answers ends that day's Daily."],
+];
+el("faqLink").addEventListener("click", () => openModal("How it works", FAQ.map(([q, a]) => `<div class="faq-q">${esc(q)}</div><div class="faq-a">${esc(a)}</div>`).join("")));
+
+// ---------- Share links ----------
+function encodeSpec(spec){
+  const bytes = new TextEncoder().encode(JSON.stringify(spec));
+  let bin = ""; bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeSpec(str){
+  try{ const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/")); return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0)))); }catch(e){ return null; }
+}
+function shareText(){
+  const lines = [isDaily || grid.d ? `Grid Iron — Daily #${dailyNumber(grid.d)} · grid ${gridCode(grid)}` : `Grid Iron — grid ${gridCode(grid)}`];
+  const filled = Object.keys(answers).length;
+  if(filled){
+    lines.push(`${el("score").textContent} pts · ${filled}/9`);
+    for(let r = 0; r < 3; r++){ let row = ""; for(let c = 0; c < 3; c++) row += answers[`${r}-${c}`] !== undefined ? "🟩" : "⬜"; lines.push(row); }
+  }
+  lines.push(location.href.split("#")[0] + "#g=" + encodeSpec(grid));
+  return lines.join("\n");
+}
+el("shareBtn").addEventListener("click", async () => {
+  const text = shareText();
+  try{ await navigator.clipboard.writeText(text); toast("Copied: paste it to a friend"); }
+  catch(e){ openModal("Share this grid", `<textarea style="width:100%;height:160px;font:inherit" readonly>${esc(text)}</textarea>`); }
+});
+
+function openFromLink(){
+  const m = location.hash.match(/^#g=([A-Za-z0-9_-]+)$/);
+  if(!m) return false;
+  try{ history.replaceState(null, "", location.href.split("#")[0]); }catch(e){}
+  const g = validSpec(decodeSpec(m[1]));
+  if(!g){ toast("That grid link is broken. Here's today's Daily instead."); return false; }
+  if(g.d === todayInNewYork()){
+    const saved = loadSaved(g.d);
+    if(saved && gridCode(saved.grid) === gridCode(g)) startGrid(saved.grid, true, saved.answers, saved.locked);
+    else startGrid(g, true);
+  } else {
+    startGrid(g, false, {}, false, true);
+  }
+  return true;
+}
+
+// ---------- Buttons ----------
+el("dailyBtn").addEventListener("click", startDaily);
+el("newBtn").addEventListener("click", startRandom);
+el("revealBtn").addEventListener("click", () => {
+  if(isDaily && !confirm("Seeing the answers ends today's Daily. Unanswered squares will be locked. Continue?")) return;
+  locked = true;
+  save();
+  render();
+});
+
+let toastTimer;
+function toast(text){
+  const t = el("toast");
+  t.textContent = text;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+if(!openFromLink()) startDaily();
+</script>
+</body>
+</html>

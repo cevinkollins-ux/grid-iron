@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "grid-iron-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8744"],
+      "port": 8744
+    }
+  ]
+}
