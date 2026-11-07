@@ -4,13 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grid Iron</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cellipse cx='50' cy='50' rx='44' ry='28' transform='rotate(-35 50 50)' fill='%23041e42'/%3E%3Cg stroke='%23fff' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M36 64 L64 36'/%3E%3Cpath d='M42 50 L50 58 M47 45 L55 53 M52 40 L60 48'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" id="favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cellipse cx='50' cy='50' rx='44' ry='28' transform='rotate(-35 50 50)' fill='%23041e42'/%3E%3Cg stroke='%23fff' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M36 64 L64 36'/%3E%3Cpath d='M42 50 L50 58 M47 45 L55 53 M52 40 L60 48'/%3E%3C/g%3E%3C/svg%3E">
+<script>
+// Teams you can play. The chosen team comes from ?team= in the address, then
+// the last team picked in this browser, then the Cowboys.
+const TEAMS = {
+  DAL: {code:"DAL", city:"Dallas", name:"Cowboys", full:"Dallas Cowboys", player:"Cowboy",
+        honor:"Ring of Honor", data:"data.js", storageKey:"gridiron_daily", seed:"gridiron-daily:", color:"#041e42"},
+  PIT: {code:"PIT", city:"Pittsburgh", name:"Steelers", full:"Pittsburgh Steelers", player:"Steeler",
+        honor:"Hall of Honor", data:"data-pit.js", storageKey:"gridiron_daily_pit", seed:"gridiron-daily-pit:", color:"#101820"},
+};
+const T = (() => {
+  const fromUrl = (new URLSearchParams(location.search).get("team") || "").toUpperCase();
+  let saved = null;
+  try{ saved = localStorage.getItem("gridiron_team"); }catch(e){}
+  const code = TEAMS[fromUrl] ? fromUrl : (TEAMS[saved] ? saved : "DAL");
+  try{ localStorage.setItem("gridiron_team", code); }catch(e){}
+  return TEAMS[code];
+})();
+document.documentElement.dataset.team = T.code;
+document.getElementById("favicon").href = document.getElementById("favicon").href.replace("%23041e42", "%23" + T.color.slice(1));
+document.write(`<script src="${T.data}"><\/script>`);
+</script>
 <style>
+  /* Team colors. --navy/--silver are the main and accent colors; the
+     Steelers override them below with black and gold. */
   :root{
     --navy:#041e42;
     --navy-2:#0b2f63;
     --silver:#a5acaf;
     --silver-light:#e7eaec;
+    --on-navy:#c8d0d8;
+    --shadow:4,30,66;
     --paper:#f4f6f7;
     --card:#ffffff;
     --ink:#0f1a2a;
@@ -22,6 +47,16 @@
     --wrong-bg:#fbe4e1;
     --unknown:#8a5a00;
     --unknown-bg:#fdf1d8;
+  }
+  :root[data-team="PIT"]{
+    --navy:#101820;
+    --navy-2:#2e3640;
+    --silver:#ffb612;
+    --silver-light:#ece9e1;
+    --on-navy:#d9d4c7;
+    --shadow:16,24,32;
+    --paper:#f6f5f1;
+    --line:#d6d2c8;
   }
   *{box-sizing:border-box;}
   body{
@@ -38,6 +73,12 @@
     padding:18px 16px 16px;
   }
   .topbar .inner{max-width:860px;margin:0 auto;}
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .team-pick{display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--silver);}
+  .team-pick select{
+    font-family:inherit;font-size:16px;font-weight:700;color:var(--navy);
+    background:#fff;border:2px solid var(--silver);border-radius:6px;padding:6px 10px;cursor:pointer;
+  }
   h1{
     margin:0;
     font-size:2rem;
@@ -46,7 +87,7 @@
     text-transform:uppercase;
   }
   h1 span{color:var(--silver);}
-  .sub{margin-top:4px;color:#c8d0d8;font-size:0.92rem;line-height:1.45;max-width:62ch;}
+  .sub{margin-top:4px;color:var(--on-navy);font-size:0.92rem;line-height:1.45;max-width:62ch;}
   .wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px;}
 
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
@@ -99,7 +140,7 @@
     vertical-align:middle;
   }
   th.cat .tag{display:block;font-size:0.66rem;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--silver);margin-bottom:3px;}
-  th.cat .note{display:block;font-size:0.68rem;font-weight:400;color:#c8d0d8;margin-top:3px;}
+  th.cat .note{display:block;font-size:0.68rem;font-weight:400;color:var(--on-navy);margin-top:3px;}
   th.row{
     background:var(--card);
     border:1px solid var(--line);
@@ -147,13 +188,12 @@
     background:#fff;border:1px solid var(--line);border-radius:6px;
     margin:3px 0 0;padding:0;list-style:none;
     max-height:240px;overflow-y:auto;z-index:30;
-    box-shadow:0 6px 16px rgba(4,30,66,0.18);
+    box-shadow:0 6px 16px rgba(var(--shadow),0.18);
     display:none;
   }
   td.cell.right .ac-list{left:auto;right:0;}
   .ac-list li{padding:7px 10px;font-size:0.84rem;cursor:pointer;border-bottom:1px solid var(--silver-light);}
   .ac-list li:last-child{border-bottom:none;}
-  .ac-list li small{display:block;color:var(--muted);font-size:0.72rem;}
   .ac-list li.active, .ac-list li:hover{background:var(--silver-light);}
   .msg{font-size:0.76rem;line-height:1.35;margin-top:6px;}
   .msg.wrong{color:var(--wrong);}
@@ -187,7 +227,7 @@
   footer a{color:var(--navy-2);cursor:pointer;}
 
   .modal-overlay{
-    display:none;position:fixed;inset:0;background:rgba(4,30,66,0.55);
+    display:none;position:fixed;inset:0;background:rgba(var(--shadow),0.55);
     z-index:100;align-items:center;justify-content:center;padding:16px;
   }
   .modal-box{
@@ -245,8 +285,16 @@
 <body>
 <div class="topbar">
   <div class="inner">
-    <h1>Grid <span>Iron</span></h1>
-    <div class="sub">A Dallas Cowboys trivia grid. For each square, name a Cowboy who played with that row's player <em>and</em> fits the column. Obscure picks score more.</div>
+    <div class="title-row">
+      <h1>Grid <span>Iron</span></h1>
+      <label class="team-pick">Team
+        <select id="teamSelect" aria-label="Team">
+          <option value="DAL">Dallas Cowboys</option>
+          <option value="PIT">Pittsburgh Steelers</option>
+        </select>
+      </label>
+    </div>
+    <div class="sub" id="subtitle"></div>
   </div>
 </div>
 
@@ -273,7 +321,7 @@
 
   <footer>
     Player data from <a href="https://github.com/nflverse" target="_blank" rel="noopener">nflverse</a> (rosters 1960–today, stats 1999–today).
-    Not affiliated with the Dallas Cowboys or the NFL.<br>
+    Not affiliated with the <span id="teamFull"></span> or the NFL.<br>
     <a id="faqLink">How it works &amp; FAQ</a>
   </footer>
 </div>
@@ -286,7 +334,6 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js"></script>
 <script>
 "use strict";
 
@@ -297,7 +344,7 @@ const STATS_FROM = D.statsFrom;
 const SB_SEASONS = new Set(D.superBowls);
 const MIN_ANSWERS = 3;      // every cell needs at least this many valid answers
 const DAILY_EPOCH = "2026-10-20"; // Daily #1
-const STORAGE_KEY = "gridiron_daily";
+const STORAGE_KEY = T.storageKey;
 
 const el = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -309,6 +356,12 @@ P.forEach((p, i) => {
   p.keys = [p.n, ...(p.a || [])].map(norm);
 });
 const ANCHOR_NAMES = D.anchors.map(i => P[i].n);
+
+// Players who share a name (two Roy Williamses, two Tony Hills...) get their
+// first season with the team in suggestions so you can tell them apart.
+const nameCounts = {};
+P.forEach(p => { nameCounts[p.n] = (nameCounts[p.n] || 0) + 1; });
+const suggestionLabel = p => nameCounts[p.n] > 1 ? `${p.n} (${p.s[0]})` : p.n;
 const anchorByName = new Map(D.anchors.map(i => [P[i].n, P[i]]));
 
 function yearsLabel(p){
@@ -328,12 +381,14 @@ const POS_LABEL = {QB:"Quarterback", RB:"Running back", WR:"Wide receiver", TE:"
 const TEAM_NAMES = {ARI:"Cardinals",ATL:"Falcons",BAL:"Ravens",BUF:"Bills",CAR:"Panthers",CHI:"Bears",CIN:"Bengals",
   CLE:"Browns",DEN:"Broncos",DET:"Lions",GB:"Packers",HOU:"Texans",IND:"Colts",JAX:"Jaguars",KC:"Chiefs",
   LAC:"Chargers",LAR:"Rams",LV:"Raiders",MIA:"Dolphins",MIN:"Vikings",NE:"Patriots",NO:"Saints",NYG:"Giants",
-  NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",SEA:"Seahawks",SF:"49ers",TB:"Buccaneers",TEN:"Oilers / Titans",WAS:"Washington"};
+  NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",DAL:"Cowboys",SEA:"Seahawks",SF:"49ers",TB:"Buccaneers",TEN:"Oilers / Titans",WAS:"Washington"};
 const STAT_LABEL = {pass4000:"4,000-yard passing season", rush1000:"1,000-yard rushing season",
   rec1000:"1,000-yard receiving season", sack10:"10-sack season", int5:"5-interception season",
   td10:"10-TD season (rush + catch)"};
-const DRAFT_LABEL = {r1:"1st-round draft pick", dal:"Drafted by Dallas", und:"Went undrafted"};
-const TENURE_LABEL = {"10plus":"10+ seasons in Dallas", one:"Only 1 season in Dallas"};
+// "dal" means "drafted by this team" (the key stays so old Cowboys links keep working).
+const DRAFT_LABEL = {r1:"1st-round draft pick", dal:`Drafted by ${T.city}`, und:"Went undrafted"};
+const TENURE_LABEL = {"10plus":`10+ seasons in ${T.city}`, one:`Only 1 season in ${T.city}`};
+const teamName = code => code === T.code ? T.city : (TEAM_NAMES[code] ? "the " + TEAM_NAMES[code] : code);
 
 const jerseyCounts = {};
 P.forEach(p => p.j.forEach(n => { jerseyCounts[n] = (jerseyCounts[n] || 0) + 1; }));
@@ -350,36 +405,36 @@ const CAT_TYPES = {
   },
   decade: {
     tag: "Era", weight: 3, values: [1960,1970,1980,1990,2000,2010,2020],
-    label: v => `Cowboy in the ${v}s`,
-    test: (v, p) => [p.s.some(y => y >= v && y < v + 10), `was a Cowboy ${yearsLabel(p)}`],
+    label: v => `${T.player} in the ${v}s`,
+    test: (v, p) => [p.s.some(y => y >= v && y < v + 10), `was a ${T.player} ${yearsLabel(p)}`],
   },
   sb: {
     tag: "Rings", weight: 1.2, values: ["win"],
-    label: () => "Won a Super Bowl with Dallas",
+    label: () => `Won a Super Bowl with ${T.city}`,
     note: () => "Seasons " + D.superBowls.join(", "),
-    test: (v, p) => [p.s.some(y => SB_SEASONS.has(y)), `was a Cowboy ${yearsLabel(p)}`],
+    test: (v, p) => [p.s.some(y => SB_SEASONS.has(y)), `was a ${T.player} ${yearsLabel(p)}`],
   },
   coach: {
     tag: "Head coach", weight: 2, values: D.coaches.map(c => c[0]),
     label: v => `Played for ${v}`,
     test: (v, p) => {
       const [, from, to] = D.coaches.find(c => c[0] === v);
-      return [p.s.some(y => y >= from && y <= to), `was a Cowboy ${yearsLabel(p)}`];
+      return [p.s.some(y => y >= from && y <= to), `was a ${T.player} ${yearsLabel(p)}`];
     },
   },
   honor: {
     tag: "Honors", weight: 1.2, values: ["hof", "roh"],
-    label: v => v === "hof" ? "Pro Football Hall of Famer" : "Ring of Honor",
-    test: (v, p) => [!!p[v], v === "hof" ? "isn't in the Hall of Fame" : "isn't in the Ring of Honor"],
+    label: v => v === "hof" ? "Pro Football Hall of Famer" : `${T.name} ${T.honor}`,
+    test: (v, p) => [!!p[v], v === "hof" ? "isn't in the Hall of Fame" : `isn't in the ${T.name} ${T.honor}`],
   },
   team: {
-    tag: "Career", weight: 3, values: Object.keys(TEAM_NAMES),
+    tag: "Career", weight: 3, values: Object.keys(TEAM_NAMES).filter(t => t !== T.code),
     label: v => `Also played for the ${TEAM_NAMES[v]}`,
     note: () => "Any time in his career",
     test: (v, p) => {
       if(p.o.includes(v)) return [true];
       if(p.fs <= 1961) return [null, "our roster data starts in 1960, and his career may have started earlier"];
-      return [false, p.o.length ? `also played for the ${p.o.map(t => TEAM_NAMES[t] || t).join(", ")}` : "only played for Dallas"];
+      return [false, p.o.length ? `also played for the ${p.o.map(t => TEAM_NAMES[t] || t).join(", ")}` : `only played for ${T.city}`];
     },
   },
   college: {
@@ -393,30 +448,30 @@ const CAT_TYPES = {
     test: (v, p) => {
       const d = p.d;
       if(!d) return [null, "we don't have draft records from his era"];
-      const desc = d.u ? "went undrafted" : `was a round ${d.r} pick by ${d.t === "DAL" ? "Dallas" : (TEAM_NAMES[d.t] ? "the " + TEAM_NAMES[d.t] : d.t)} in ${d.y}`;
+      const desc = d.u ? "went undrafted" : `was a round ${d.r} pick by ${teamName(d.t)} in ${d.y}`;
       if(v === "und") return [!!d.u, desc];
       if(v === "r1") return [!d.u && d.r === 1, desc];
-      return [!d.u && d.t === "DAL", desc];
+      return [!d.u && d.t === T.code, desc];
     },
   },
   stat: {
     tag: "Big season", weight: 1.5, values: Object.keys(STAT_LABEL),
     label: v => STAT_LABEL[v],
-    note: () => `With Dallas · stats from ${STATS_FROM} on`,
+    note: () => `With ${T.city} · stats from ${STATS_FROM} on`,
     test: (v, p) => {
       if(p.f.includes(v)) return [true];
       if(p.s[0] < STATS_FROM) return [null, `our season stats only go back to ${STATS_FROM}`];
-      return [false, "never had one with Dallas"];
+      return [false, `never had one with ${T.city}`];
     },
   },
   tenure: {
     tag: "Tenure", weight: 1, values: Object.keys(TENURE_LABEL),
     label: v => TENURE_LABEL[v],
-    test: (v, p) => [v === "one" ? p.s.length === 1 : p.s.length >= 10, `played ${p.s.length} season${p.s.length === 1 ? "" : "s"} in Dallas`],
+    test: (v, p) => [v === "one" ? p.s.length === 1 : p.s.length >= 10, `played ${p.s.length} season${p.s.length === 1 ? "" : "s"} in ${T.city}`],
   },
   jersey: {
     tag: "Jersey", weight: 1, values: JERSEYS,
-    label: v => `Wore #${v} for Dallas`,
+    label: v => `Wore #${v} for ${T.city}`,
     test: (v, p) => p.j.length ? [p.j.includes(v), `wore #${p.j.join(", #")}`] : [null, "we don't have his jersey number"],
   },
   mate: {
@@ -428,7 +483,7 @@ const CAT_TYPES = {
 
 function teammateTest(anchor, p){
   if(p.i === anchor.i) return [false, `that's ${anchor.n} himself`];
-  return [p.s.some(y => anchor.seasonSet.has(y)), `wasn't in Dallas at the same time (${yearsLabel(p)} vs. ${yearsLabel(anchor)})`];
+  return [p.s.some(y => anchor.seasonSet.has(y)), `wasn't in ${T.city} at the same time (${yearsLabel(p)} vs. ${yearsLabel(anchor)})`];
 }
 
 const catLabel = c => CAT_TYPES[c.t].label(c.v);
@@ -441,7 +496,7 @@ function validAnswers(anchor, cat){
 }
 
 // ---------- Scoring ----------
-// Rarity rewards deep cuts: 1-season Cowboys score 50, long-tenured stars score 1.
+// Rarity rewards deep cuts: 1-season players score 50, long-tenured stars score 1.
 function rarity(p){
   const fame = p.s.length + (p.hof ? 8 : 0) + (p.roh ? 5 : 0) + (anchorByName.get(p.n) === p ? 4 : 0);
   const capped = Math.min(Math.max(fame, 1), 14);
@@ -559,7 +614,7 @@ function startDaily(){
     startGrid(saved.grid, true, saved.answers, saved.locked);
     return;
   }
-  const g = dealGrid(seededRng("gridiron-daily:" + date));
+  const g = dealGrid(seededRng(T.seed + date));
   g.d = date;
   startGrid(g, true);
 }
@@ -675,7 +730,8 @@ function wireAutocomplete(td, r, c){
   let items = [], active = 0;
   const draw = () => {
     if(!items.length){ list.style.display = "none"; return; }
-    list.innerHTML = items.map((p, i) => `<li data-i="${i}" class="${i === active ? "active" : ""}">${esc(p.n)}<small>${esc(p.g || "")} · ${esc(yearsLabel(p))}</small></li>`).join("");
+    // Just the name: position or years here would give away the answer.
+    list.innerHTML = items.map((p, i) => `<li data-i="${i}" class="${i === active ? "active" : ""}">${esc(suggestionLabel(p))}</li>`).join("");
     list.style.display = "block";
   };
   input.addEventListener("input", () => { items = search(input.value); active = 0; draw(); });
@@ -714,7 +770,7 @@ function showMsg(r, c, text, kind){
 // candidates: players matching what was typed (more than one if names are shared).
 function guess(r, c, candidates, typed = ""){
   if(locked) return;
-  if(!candidates.length){ showMsg(r, c, typed.trim() ? `No Cowboy named "${typed.trim()}". Pick from the list.` : "Type a name.", "wrong"); return; }
+  if(!candidates.length){ showMsg(r, c, typed.trim() ? `No ${T.player} named "${typed.trim()}". Pick from the list.` : "Type a name.", "wrong"); return; }
   const td = el(`cell-${r}-${c}`);
   td.querySelector(".ac-list").style.display = "none";
   const usedIdx = new Set(Object.values(answers));
@@ -755,11 +811,11 @@ el("modal").addEventListener("click", e => { if(e.target === el("modal")) closeM
 document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
 
 function openProfile(p){
-  const d = p.d ? (p.d.u ? "Undrafted" : `${p.d.y}, round ${p.d.r} (#${p.d.p}) by ${p.d.t === "DAL" ? "Dallas" : (TEAM_NAMES[p.d.t] || p.d.t)}`) : "—";
-  const honors = [p.hof && "Hall of Fame", p.roh && "Ring of Honor"].filter(Boolean).join(", ") || "—";
+  const d = p.d ? (p.d.u ? "Undrafted" : `${p.d.y}, round ${p.d.r} (#${p.d.p}) by ${p.d.t === T.code ? T.city : (TEAM_NAMES[p.d.t] || p.d.t)}`) : "—";
+  const honors = [p.hof && "Hall of Fame", p.roh && T.honor].filter(Boolean).join(", ") || "—";
   openModal(p.n, `<div class="profile">${headshot(p)}
     <dl>
-      <dt>Dallas</dt><dd>${esc(yearsLabel(p))} (${p.s.length} season${p.s.length === 1 ? "" : "s"})</dd>
+      <dt>${esc(T.city)}</dt><dd>${esc(yearsLabel(p))} (${p.s.length} season${p.s.length === 1 ? "" : "s"})</dd>
       <dt>Position</dt><dd>${esc(p.pg.map(g => POS_LABEL[g]).join(", ") || "—")}</dd>
       <dt>Number</dt><dd>${p.j.length ? "#" + p.j.join(", #") : "—"}</dd>
       <dt>College</dt><dd>${esc(p.c.join(", ") || "—")}</dd>
@@ -772,9 +828,9 @@ function openProfile(p){
 function openBreakdown(p){
   openModal(p.n, `<div class="breakdown">
     <div>Correct answer: 50</div>
-    <div>Rarity: ${rarity(p)} <span class="meta">(${p.s.length} season${p.s.length === 1 ? "" : "s"} in Dallas${p.hof ? ", Hall of Famer" : ""}${p.roh ? ", Ring of Honor" : ""})</span></div>
+    <div>Rarity: ${rarity(p)} <span class="meta">(${p.s.length} season${p.s.length === 1 ? "" : "s"} in ${T.city}${p.hof ? ", Hall of Famer" : ""}${p.roh ? ", " + T.honor : ""})</span></div>
     <div class="total">Total: ${50 + rarity(p)}</div>
-    <p class="modal-note">Rarity runs from 50 (one-season Cowboys) down to 1 (long-tenured stars and Hall of Famers).</p>
+    <p class="modal-note">Rarity runs from 50 (one-season ${T.name}) down to 1 (long-tenured stars and Hall of Famers).</p>
   </div>`);
 }
 
@@ -788,11 +844,12 @@ function openSeeAll(r, c){
 }
 
 const FAQ = [
-  ["How do I play?", "Each square sits under a row player and a column category. Name a Cowboy who was on the Dallas roster in at least one of the same seasons as the row player, and who fits the column. Each player can only be used once per grid."],
-  ["How is it scored?", "50 points for a correct answer, plus 1–50 rarity points. Rarity depends on how many seasons the player spent in Dallas (fewer is rarer), with Hall of Famers, Ring of Honor members, and the row players themselves counted as famous."],
-  ["What does \"played with\" mean?", "Both players were on the Cowboys roster in the same season. Practice squad players don't count. Being on the same season's roster doesn't guarantee they overlapped week to week."],
-  ["Why did it say it can't verify my answer?", "Some data is missing for older players: college and jersey numbers for many 1960s Cowboys, draft records before 1980, and season stats before 1999. Rather than mark a possibly-right answer wrong, the game tells you and lets you try someone else with no penalty."],
-  ["Where does the data come from?", "Rosters, colleges, draft picks, and stats come from the free nflverse project. The Hall of Fame and Ring of Honor lists and the head coach list are maintained by hand."],
+  ["How do I play?", `Each square sits under a row player and a column category. Name a ${T.player} who was on the ${T.city} roster in at least one of the same seasons as the row player, and who fits the column. Each player can only be used once per grid.`],
+  ["How is it scored?", `50 points for a correct answer, plus 1–50 rarity points. Rarity depends on how many seasons the player spent in ${T.city} (fewer is rarer), with Hall of Famers, ${T.honor} members, and the row players themselves counted as famous.`],
+  ["Can I switch teams?", "Yes: pick a team at the top. Each team has its own Daily, and your progress is saved separately for each."],
+  ["What does \"played with\" mean?", `Both players were on the ${T.name} roster in the same season. Practice squad players don't count. Being on the same season's roster doesn't guarantee they overlapped week to week.`],
+  ["Why did it say it can't verify my answer?", `Some data is missing for older players: college and jersey numbers for many 1960s ${T.name}, draft records before 1980, and season stats before 1999. Rather than mark a possibly-right answer wrong, the game tells you and lets you try someone else with no penalty.`],
+  ["Where does the data come from?", `Rosters, colleges, draft picks, and stats come from the free nflverse project. The Hall of Fame and ${T.honor} lists and the head coach list are maintained by hand.`],
   ["How does the Daily work?", "Everyone gets the same grid each day, rolling over at midnight New York time. Your progress is saved in this browser. Seeing the answers ends that day's Daily."],
 ];
 el("faqLink").addEventListener("click", () => openModal("How it works", FAQ.map(([q, a]) => `<div class="faq-q">${esc(q)}</div><div class="faq-a">${esc(a)}</div>`).join("")));
@@ -807,13 +864,14 @@ function decodeSpec(str){
   try{ const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/")); return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0)))); }catch(e){ return null; }
 }
 function shareText(){
-  const lines = [isDaily || grid.d ? `Grid Iron — Daily #${dailyNumber(grid.d)} · grid ${gridCode(grid)}` : `Grid Iron — grid ${gridCode(grid)}`];
+  const title = `Grid Iron ${T.name}`;
+  const lines = [isDaily || grid.d ? `${title} — Daily #${dailyNumber(grid.d)} · grid ${gridCode(grid)}` : `${title} — grid ${gridCode(grid)}`];
   const filled = Object.keys(answers).length;
   if(filled){
     lines.push(`${el("score").textContent} pts · ${filled}/9`);
     for(let r = 0; r < 3; r++){ let row = ""; for(let c = 0; c < 3; c++) row += answers[`${r}-${c}`] !== undefined ? "🟩" : "⬜"; lines.push(row); }
   }
-  lines.push(location.href.split("#")[0] + "#g=" + encodeSpec(grid));
+  lines.push(location.origin + location.pathname + "?team=" + T.code.toLowerCase() + "#g=" + encodeSpec(grid));
   return lines.join("\n");
 }
 el("shareBtn").addEventListener("click", async () => {
@@ -837,6 +895,15 @@ function openFromLink(){
   }
   return true;
 }
+
+// ---------- Team ----------
+el("subtitle").innerHTML = `A ${esc(T.full)} trivia grid. For each square, name a ${esc(T.player)} who played with that row's player <em>and</em> fits the column. Obscure picks score more.`;
+el("teamFull").textContent = T.full;
+document.title = `Grid Iron · ${T.name}`;
+el("teamSelect").value = T.code;
+el("teamSelect").addEventListener("change", e => {
+  location.href = location.pathname + "?team=" + e.target.value.toLowerCase();
+});
 
 // ---------- Buttons ----------
 el("dailyBtn").addEventListener("click", startDaily);
